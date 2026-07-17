@@ -22,7 +22,7 @@ FitPilot is an AI-powered fitness platform featuring a personal trainer, nutriti
 2. **Setup environment variables**:
    ```bash
    cp .env.example .env
-   # Edit .env and insert your GEMINI_API_KEY
+ 
    ```
 3. **Run with Docker Compose**:
    ```bash
