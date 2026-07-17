@@ -13,7 +13,10 @@ const PRLab = () => {
 
   const fetchPRs = async () => {
     try {
-      const res = await axios.get('/api/prs');
+      // Use trailing slash and timestamp to bust any Nginx/Browser caching
+      const timestamp = new Date().getTime();
+      const res = await axios.get(`/api/prs/?t=${timestamp}`);
+      console.log("Fetched PRs:", res.data);
       setPrs(res.data);
     } catch (err) {
       console.error("Failed to fetch PRs", err);
