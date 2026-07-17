@@ -14,7 +14,7 @@ FitPilot is an AI-powered fitness platform featuring a personal trainer, nutriti
 ## Architecture
 - **Backend**: Python 3.10+, FastAPI, SQLAlchemy, SQLite (Development) / PostgreSQL (Production ready).
 - **Frontend**: React 18, Vite, Tailwind CSS, Recharts.
-- **AI**: Google Gemini API integration.
+- **AI**: openrouter API integration.
 
 ## Installation and Local Setup (Docker)
 
