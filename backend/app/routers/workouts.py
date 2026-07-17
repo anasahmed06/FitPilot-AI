@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
+from datetime import datetime
 from ..database import get_db
-from ..models import User, WorkoutLog, ExerciseLog
+from ..models import User, WorkoutLog, ExerciseLog, PersonalRecord
 from ..auth.security import get_current_user
 from ..schemas import WorkoutGenerateRequest, WorkoutLogCreate
 from ..services.ai_service import AIService
@@ -38,8 +39,10 @@ def log_workout(request: WorkoutLogCreate, current_user: User = Depends(get_curr
     db.commit()
     db.refresh(workout_log)
 
-    # 2. Add Exercises
+    # 2. Add Exercises and check for PRs
+    new_prs = []
     for ex in request.exercises:
+        # Save exercise log
         db.add(ExerciseLog(
             workout_log_id=workout_log.id,
             exercise_name=ex.exercise_name,
@@ -48,9 +51,37 @@ def log_workout(request: WorkoutLogCreate, current_user: User = Depends(get_curr
             weight=ex.weight,
             rpe=ex.rpe
         ))
+        
+        # PR Check Logic (weight-based)
+        if ex.weight > 0:
+            existing_pr = db.query(PersonalRecord).filter(
+                PersonalRecord.user_id == current_user.id,
+                PersonalRecord.exercise_name == ex.exercise_name
+            ).first()
+
+            if existing_pr:
+                if ex.weight > existing_pr.current_weight:
+                    existing_pr.previous_weight = existing_pr.current_weight
+                    existing_pr.current_weight = ex.weight
+                    existing_pr.date_achieved = datetime.utcnow()
+                    new_prs.append({"exercise_name": ex.exercise_name, "weight": ex.weight})
+            else:
+                new_pr = PersonalRecord(
+                    user_id=current_user.id,
+                    exercise_name=ex.exercise_name,
+                    current_weight=ex.weight,
+                    date_achieved=datetime.utcnow()
+                )
+                db.add(new_pr)
+                new_prs.append({"exercise_name": ex.exercise_name, "weight": ex.weight})
+
     db.commit()
     
-    return {"message": "Workout logged successfully", "workout_log_id": workout_log.id}
+    return {
+        "message": "Workout logged successfully", 
+        "workout_log_id": workout_log.id,
+        "new_prs": new_prs
+    }
 
 
 @router.get("/history")

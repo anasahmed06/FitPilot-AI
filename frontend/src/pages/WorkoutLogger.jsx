@@ -67,21 +67,17 @@ const WorkoutLogger = () => {
       }
 
       const payload = { notes, exercises: validExercises };
-      await axios.post('/api/workouts/log', payload);
+      const res = await axios.post('/api/workouts/log', payload);
       
-      // Auto post PRs for valid exercises
-      for (const ex of validExercises) {
-        if (ex.weight > 0) {
-          try {
-            await axios.post('/api/prs', { exercise_name: ex.exercise_name, weight: ex.weight });
-          } catch (e) {
-            console.error("Error silently updating PRs", e);
-          }
-        }
+      const newPrs = res.data.new_prs || [];
+      if (newPrs.length > 0) {
+        const prNames = newPrs.map(pr => pr.exercise_name).join(', ');
+        setMessage(`Workout logged! 🎉 New PRs: ${prNames}`);
+        setTimeout(() => navigate('/dashboard'), 4000); // Wait longer so they can read PRs
+      } else {
+        setMessage("Workout logged successfully! Great job.");
+        setTimeout(() => navigate('/dashboard'), 2000);
       }
-
-      setMessage("Workout logged successfully! Great job.");
-      setTimeout(() => navigate('/dashboard'), 2000);
     } catch (err) {
       console.error(err);
       setMessage("Failed to log workout.");
