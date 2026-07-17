@@ -16,8 +16,12 @@ RUN npm run build
 # Stage 2: Build the FastAPI Backend and Nginx Server
 FROM python:3.11-slim
 
-# Install Nginx
-RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
+# Install Nginx and gettext-base for envsubst
+RUN apt-get update && \
+    apt-get install -y nginx gettext-base && \
+    rm -rf /var/lib/apt/lists/* && \
+    rm -f /etc/nginx/sites-enabled/default && \
+    rm -f /etc/nginx/sites-available/default
 
 WORKDIR /app/backend
 
@@ -31,15 +35,12 @@ COPY backend ./
 # Copy compiled frontend from Stage 1 to Nginx default public directory
 COPY --from=frontend-builder /app/frontend/dist /usr/share/nginx/html
 
-# Copy Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy Nginx configuration as a template
+COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 
 # Copy startup script
 COPY start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 
-# Expose port 8080 for AWS App Runner
-EXPOSE 8080
-
-# Run the startup script to start both Uvicorn and Nginx
+# Start Nginx and Uvicorn
 CMD ["/app/start.sh"]
